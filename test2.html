@@ -1,0 +1,98 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Points of Interest</title>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <!-- Pure three.js code that the A-Frame components use for location-based AR -->
+    <script src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/three.js/build/ar-threex-location-only.js'></script>
+    <!-- AR.js A-Frame components (recommended to use version 3.4.5, rather than master) -->
+    <script src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js'></script>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene
+      embedded
+      arjs="sourceType: webcam; gpsMinAccuracy: 100;"
+      vr-mode-ui="enabled: false"
+      renderer="logarithmicDepthBuffer: true;"
+    >
+      <!-- Camera with GPS -->
+      <a-camera gps-camera rotation-reader></a-camera>
+
+      <!-- 2D Compass Arrow fixed to screen -->
+      <a-entity id="ui-arrow"
+                geometry="primitive: cone; radiusBottom: 0.05; height: 0.2;"
+                material="color: red;"
+                position="0 0 -1"
+                scale="1 1 1"
+                rotation="0 0 0"
+                look-at="[gps-camera]">
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const targetCoords = {
+        lat: 37.7749,   // Set your target latitude
+        lon: -122.4194  // Set your target longitude
+      };
+
+      let currentHeading = 0; // In degrees
+      let currentPosition = null;
+
+      // Get compass heading
+      window.addEventListener('deviceorientationabsolute', function (event) {
+        if (event.absolute && event.alpha != null) {
+          currentHeading = 360 - event.alpha;
+        }
+      }, true);
+
+      // Calculate bearing between two points
+      function toRadians(deg) {
+        return deg * Math.PI / 180;
+      }
+
+      function toDegrees(rad) {
+        return rad * 180 / Math.PI;
+      }
+
+      function calculateBearing(lat1, lon1, lat2, lon2) {
+        const φ1 = toRadians(lat1);
+        const φ2 = toRadians(lat2);
+        const Δλ = toRadians(lon2 - lon1);
+
+        const y = Math.sin(Δλ) * Math.cos(φ2);
+        const x = Math.cos(φ1) * Math.sin(φ2) -
+                  Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+        const θ = Math.atan2(y, x);
+        return (toDegrees(θ) + 360) % 360;
+      }
+
+      // Update arrow rotation when position changes
+      document.querySelector("[gps-camera]").addEventListener("gps-camera-update-position", (e) => {
+        currentPosition = e.detail.position;
+        updateArrowRotation();
+      });
+
+      // Rotate arrow every animation frame
+      function updateArrowRotation() {
+        if (!currentPosition) return;
+
+        const bearing = calculateBearing(
+          currentPosition.latitude,
+          currentPosition.longitude,
+          targetCoords.lat,
+          targetCoords.lon
+        );
+
+        const relativeAngle = (bearing - currentHeading + 360) % 360;
+
+        const arrow = document.getElementById("ui-arrow");
+        arrow.setAttribute("rotation", `0 ${relativeAngle} 0`);
+      }
+
+      setInterval(updateArrowRotation, 100); // Repeat regularly
+    </script>
+  </body>
+</html>

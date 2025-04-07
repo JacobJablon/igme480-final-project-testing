@@ -54,11 +54,13 @@ const loadPlaces = (places) => {
 
     const midnightOil = places.find(place => place.name === "Midnight Oil");
     console.log(midnightOil);
-    
+
     targetCoords = {
         lat: midnightOil.latitude,
         lon: midnightOil.longitude
     };
+
+    rotateArrow();
 };
 
 function toRadians(degrees) {
@@ -77,15 +79,22 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     return (θ * 180 / Math.PI + 360) % 360;
 }
 
-document.querySelector("[gps-camera]").addEventListener("gps-camera-update-position", (e) => {
-    const userLat = e.detail.position.latitude;
-    const userLon = e.detail.position.longitude;
+const rotateArrow = () => {
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            const bearing = calculateBearing(latitude, longitude, targetCoords.lat, targetCoords.lon);
+            console.log("BEARING IS " + bearing);
+            const arrow = document.getElementById("arrow");
 
-    const bearing = calculateBearing(userLat, userLon, targetCoords.lat, targetCoords.lon);
-    const arrow = document.getElementById("arrow");
-
-    arrow.setAttribute("rotation", `0 ${bearing} 0`);
-});
+            arrow.setAttribute("rotation", `0 ${bearing} 0`);
+        },
+        (error) => {
+            console.error("I MADE AN ERROR:", error);
+        }
+    );
+    requestAnimationFrame(rotateArrow);
+};
 
 window.onload = () => {
     navigator.geolocation.getCurrentPosition(
