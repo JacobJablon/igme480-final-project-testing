@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Points of Interest</title>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <!-- Pure three.js code that the A-Frame components use for location-based AR -->
+    <script src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/three.js/build/ar-threex-location-only.js'></script>
+    <!-- AR.js A-Frame components (recommended to use version 3.4.5, rather than master) -->
+    <script src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js'></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a-scene embedded arjs vr-mode-ui="enabled: false" raycaster cursor="rayOrigin: mouse" renderer="antialias: true; alpha: true">
+        <a-camera gps-camera></a-camera>
+        <a-entity id="arrow">
+            <a-cylinder position="0, 0, -5" color="crimson" height="0.5" radius="0.05"></a-cylinder>
+            <a-cone position="0, 0.4, -5" color="tomato" height="0.3" radius-bottom="0.15" radius-top="0"></a-cone>
+        </a-entity>
+    </a-scene>
+    <script src="script.js"></script>
+</body>
+</html>
