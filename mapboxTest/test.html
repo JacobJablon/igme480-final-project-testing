@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Points of Interest</title>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <!-- Pure three.js code that the A-Frame components use for location-based AR -->
+    <script src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/three.js/build/ar-threex-location-only.js'></script>
+    <!-- AR.js A-Frame components (recommended to use version 3.4.5, rather than master) -->
+    <script src='https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js'></script>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            height: 200px;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Mini-map container -->
+    <div id="map"></div>
+
+    <!-- A-Frame Scene -->
+    <a-scene embedded arjs="sourceType: webcam; gpsMinAccuracy: 100;" vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true;">
+        <a-camera gps-camera rotation-reader></a-camera>
+    </a-scene>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoianJqODI1MCIsImEiOiJjbTM1YjZhNG0wNzFsMmxwdjF6ZjZhdG9nIn0.y_SDHGNopM9DYzaAqYC5mw'; // 🔁 Replace with your token
+
+        const targetCoords = [-122.4194, 37.7749]; // [lon, lat] of your target
+
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: targetCoords,
+            zoom: 14,
+            interactive: false // Makes it a HUD
+        });
+
+        // Add target marker
+        const targetMarker = new mapboxgl.Marker({ color: 'red' })
+            .setLngLat(targetCoords)
+            .addTo(map);
+
+        // Add user marker (we’ll update this dynamically)
+        const userMarker = new mapboxgl.Marker({ color: 'blue' }).setLngLat(targetCoords).addTo(map);
+
+        // Fit bounds so both are visible
+        function fitMapBounds(userCoords) {
+            const bounds = new mapboxgl.LngLatBounds();
+            bounds.extend(userCoords);
+            bounds.extend(targetCoords);
+            map.fitBounds(bounds, { padding: 20, animate: false });
+        }
+
+        // Optional: draw route between user and target using Mapbox Directions API
+        async function drawRoute(userCoords) {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${userCoords[0]},${userCoords[1]};${targetCoords[0]},${targetCoords[1]}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const coords = data.routes[0].geometry;
+
+            // Add route as a line
+            if (map.getSource('route')) {
+                map.getSource('route').setData(coords);
+            } else {
+                map.addSource('route', {
+                    type: 'geojson',
+                    data: coords
+                });
+                map.addLayer({
+                    id: 'route',
+                    type: 'line',
+                    source: 'route',
+                    layout: {
+                        'line-cap': 'round',
+                        'line-join': 'round'
+                    },
+                    paint: {
+                        'line-color': '#3b9ddd',
+                        'line-width': 4
+                    }
+                });
+            }
+        }
+
+        // Listen for AR.js GPS updates
+        document.querySelector("[gps-camera]").addEventListener("gps-camera-update-position", (e) => {
+            const userLat = e.detail.position.latitude;
+            const userLon = e.detail.position.longitude;
+
+            const userCoords = [userLon, userLat];
+            userMarker.setLngLat(userCoords);
+            fitMapBounds(userCoords);
+            drawRoute(userCoords);
+        });
+    </script>
+</body>
+
+</html>
